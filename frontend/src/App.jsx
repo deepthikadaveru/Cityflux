@@ -3,7 +3,7 @@ import MultiCamViewer from './components/MultiCamViewer';
 import TrajectoryTracker from './components/TrajectoryTracker';
 import TrafficAnalytics from './components/TrafficAnalytics';
 import AlertCenter from './components/AlertCenter';
-import axios from 'axios';
+import api from './api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('multicam');
@@ -13,7 +13,7 @@ export default function App() {
   useEffect(() => {
     const checkAlerts = async () => {
       try {
-        const res = await axios.get('/api/alerts');
+        const res = await api.get('/api/alerts');
         setAlertCount(res.data.total_active_alerts || res.data.filter?.((a) => a.status === 'NEW').length || 0);
       } catch (err) {
         console.error('Error checking alerts:', err);

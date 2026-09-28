@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Navigation, Clock, ShieldAlert, Zap, AlertTriangle, FileText, Printer, Lock, CheckCircle, Car, ArrowRight, Flame, ShieldCheck, Eye, Camera, BarChart3, Globe2, Server } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import axios from 'axios';
+import api from '../api';
 
 // Custom Leaflet Icons for Camera Nodes
 const cameraIcon = new L.Icon({
@@ -45,7 +45,7 @@ export default function TrajectoryTracker({ selectedPlate, setSelectedPlate, onN
     setError('');
     setBarrierLocked(false);
     try {
-      const res = await axios.get(`/api/trajectory/${encodeURIComponent(plate)}`);
+      const res = await api.get(`/api/trajectory/${encodeURIComponent(plate)}`);
       setTrajectoryData(res.data);
     } catch (err) {
       setError('Failed to fetch trajectory data.');
@@ -56,7 +56,7 @@ export default function TrajectoryTracker({ selectedPlate, setSelectedPlate, onN
 
   const fetchAuditLogs = async () => {
     try {
-      const res = await axios.get('/api/audit-logs');
+      const res = await api.get('/api/audit-logs');
       setAuditLogs(res.data.audit_logs || []);
       setShowAuditModal(true);
     } catch (err) {

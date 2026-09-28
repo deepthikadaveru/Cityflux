@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import {
   Activity,
   AlertTriangle,
@@ -59,10 +59,10 @@ export default function TrafficAnalytics({ onNavigate, alertCount = 0 }) {
   const load = async () => {
     try {
       const [s, d, o, sp] = await Promise.all([
-        axios.get('/api/analytics/summary'),
-        axios.get('/api/traffic/density'),
-        axios.get('/api/traffic/od'),
-        axios.get('/api/traffic/speed'),
+        api.get('/api/analytics/summary'),
+        api.get('/api/traffic/density'),
+        api.get('/api/traffic/od'),
+        api.get('/api/traffic/speed'),
       ]);
       setSummary(s.data || null);
       setDensity(Array.isArray(d.data) ? d.data : []);

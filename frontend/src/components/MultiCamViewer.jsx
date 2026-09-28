@@ -4,7 +4,8 @@ import {
   Globe2, Map, Maximize2, Plus, Radio, RefreshCw, Server, ShieldAlert,
   Signal, Upload, Video, X, Zap, ArrowLeft
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount = 0 }) {
   const [cameras, setCameras] = useState([]);
@@ -28,7 +29,7 @@ export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount =
 
   const fetchCameras = async () => {
     try {
-      const res = await axios.get('/api/cameras');
+      const res = await api.get('/api/cameras');
       const list = Array.isArray(res.data) ? res.data : (res.data.cameras || []);
       if (list.length) {
         setCameras(list);
@@ -39,7 +40,7 @@ export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount =
 
   const fetchDetections = async () => {
     try {
-      const res = await axios.get('/api/detections');
+      const res = await api.get('/api/detections');
       setDetections(res.data.detections || []);
     } catch (err) { console.error('Detection fetch failed:', err); }
     finally { setLoading(false); }
@@ -69,7 +70,7 @@ export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount =
     const formData = new FormData();
     formData.append('file', file);
     try {
-      await axios.post(`/api/upload-video/${camId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post(`/api/upload-video/${camId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       await fetchCameras(); await fetchDetections();
     } catch (err) { alert(`Upload failed for ${camId}`); }
     finally { setUploading(p => ({ ...p, [camId]: false })); }
@@ -87,7 +88,7 @@ export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount =
       resolution: newCam.resolution, fps: newCam.fps
     };
     try {
-      await axios.post('/api/cameras', payload);
+      await api.post('/api/cameras', payload);
       setShowAddCamModal(false); await fetchCameras();
       setNewCam({ id:'', name:'', location:'', lat:'17.4401', lon:'78.3489', speed_limit_kmh:'80', video_file:'cam5.mp4', resolution:'1080p HD Node', fps:'30 FPS' });
     } catch { alert('Failed to register new camera node.'); }
@@ -98,7 +99,7 @@ export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount =
     const cam = cameras.find(c => c.id === streamConfig.targetCamId) || cameras[0];
     if (!cam) return;
     try {
-      await axios.post('/api/cameras', {
+      await api.post('/api/cameras', {
         id: cam.id, name: cam.name, location: cam.location, lat: cam.lat, lon: cam.lon,
         speed_limit_kmh: cam.speed_limit_kmh, stream_type: 'rtsp', stream_url: streamConfig.rtsp_url,
         resolution: streamConfig.resolution, fps: streamConfig.fps
@@ -181,7 +182,7 @@ export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount =
                     </div>
 
                     <button type="button" onClick={()=>setSelectedCamera(cam)} className="relative block w-full h-[330px] lg:h-[365px] bg-[#020712] overflow-hidden group cursor-pointer">
-                      <img src={`/api/video_feed/${cam.id}`} alt={cam.name} onLoad={()=>handleStreamLoaded(cam.id)} onError={e=>handleStreamError(cam.id,e)} className="absolute inset-0 w-full h-full object-contain z-10" />
+                     <img src={`${API_URL}/api/video_feed/${cam.id}`} alt={cam.name} onLoad={()=>handleStreamLoaded(cam.id)} onError={e=>handleStreamError(cam.id,e)} className="absolute inset-0 w-full h-full object-contain z-10" />
                       <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/80 border border-white/10 text-white"><span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" /><span className="text-xs font-black tracking-wider">LIVE</span></div>
                       <div className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/80 border border-emerald-400/20 text-emerald-300"><Zap className="w-4 h-4" /><span className="text-xs font-black">ANPR / OCR ACTIVE</span></div>
                       <div className="absolute bottom-4 left-4 z-20 px-3 py-2 rounded-xl bg-black/80 border border-white/10 text-white text-xs font-black">CAMERA {String(index+1).padStart(2,'0')} · {cam.fps || '30 FPS'}</div>
@@ -205,7 +206,7 @@ export default function MultiCamViewer({ onSelectPlate, onNavigate, alertCount =
       </div>
 
       {/* CAMERA DETAIL */}
-      {selectedCamera && <div className="fixed inset-0 z-[100] bg-[#030811] flex flex-col"><div className="h-[78px] shrink-0 bg-[#0b1525] border-b border-slate-700 px-4 lg:px-6 flex items-center justify-between text-white"><div className="flex items-center gap-4 min-w-0"><button onClick={()=>setSelectedCamera(null)} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-sm font-black shrink-0"><ArrowLeft className="w-4 h-4"/>Back to Camera Wall</button><div className="min-w-0"><div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 animate-pulse"/><h2 className="text-lg lg:text-xl font-black truncate">{selectedCamera.name}</h2></div><p className="text-sm text-slate-400 truncate">{selectedCamera.location}</p></div></div><button onClick={()=>setSelectedCamera(null)} className="p-3 rounded-xl bg-slate-800 hover:bg-red-600 border border-slate-700"><X className="w-5 h-5"/></button></div><div className="flex-1 min-h-0 flex items-center justify-center bg-black"><img src={`/api/video_feed/${selectedCamera.id}`} alt={selectedCamera.name} className="w-full h-full object-contain"/><div className="absolute bottom-5 left-5 px-4 py-2.5 rounded-xl bg-black/80 border border-emerald-400/20 text-emerald-300 text-sm font-black"><Zap className="inline w-4 h-4 mr-2"/>ANPR / OCR ACTIVE</div></div></div>}
+      {selectedCamera && <div className="fixed inset-0 z-[100] bg-[#030811] flex flex-col"><div className="h-[78px] shrink-0 bg-[#0b1525] border-b border-slate-700 px-4 lg:px-6 flex items-center justify-between text-white"><div className="flex items-center gap-4 min-w-0"><button onClick={()=>setSelectedCamera(null)} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-sm font-black shrink-0"><ArrowLeft className="w-4 h-4"/>Back to Camera Wall</button><div className="min-w-0"><div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 animate-pulse"/><h2 className="text-lg lg:text-xl font-black truncate">{selectedCamera.name}</h2></div><p className="text-sm text-slate-400 truncate">{selectedCamera.location}</p></div></div><button onClick={()=>setSelectedCamera(null)} className="p-3 rounded-xl bg-slate-800 hover:bg-red-600 border border-slate-700"><X className="w-5 h-5"/></button></div><div className="flex-1 min-h-0 flex items-center justify-center bg-black"><img src={`${API_URL}/api/video_feed/${selectedCamera.id}`} className="w-full h-full object-contain"/><div className="absolute bottom-5 left-5 px-4 py-2.5 rounded-xl bg-black/80 border border-emerald-400/20 text-emerald-300 text-sm font-black"><Zap className="inline w-4 h-4 mr-2"/>ANPR / OCR ACTIVE</div></div></div>}
 
       {showAddCamModal && <Modal title="Add New Camera Node" icon={Plus} onClose={()=>setShowAddCamModal(false)}><form onSubmit={handleAddCameraSubmit} className="space-y-4"><div className="grid sm:grid-cols-2 gap-4"><Field label="Camera ID" value={newCam.id} onChange={v=>setNewCam({...newCam,id:v})} required/><Field label="Display Name" value={newCam.name} onChange={v=>setNewCam({...newCam,name:v})} required/></div><Field label="Location" value={newCam.location} onChange={v=>setNewCam({...newCam,location:v})} required/><div className="grid sm:grid-cols-3 gap-4"><Field label="Latitude" value={newCam.lat} onChange={v=>setNewCam({...newCam,lat:v})}/><Field label="Longitude" value={newCam.lon} onChange={v=>setNewCam({...newCam,lon:v})}/><Field label="Speed Limit" value={newCam.speed_limit_kmh} onChange={v=>setNewCam({...newCam,speed_limit_kmh:v})}/></div><Field label="Video Source" value={newCam.video_file} onChange={v=>setNewCam({...newCam,video_file:v})}/><ModalActions onCancel={()=>setShowAddCamModal(false)} submitLabel="Register Camera"/></form></Modal>}
       {showStreamModal && <Modal title="Connect Continuous Stream" icon={Radio} onClose={()=>setShowStreamModal(false)}><form onSubmit={handleConnectStreamSubmit} className="space-y-4"><div><label className="block mb-1.5 text-sm font-bold">Camera Node</label><select value={streamConfig.targetCamId} onChange={e=>setStreamConfig({...streamConfig,targetCamId:e.target.value})} className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-sm font-semibold">{cameras.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div><label className="block mb-1.5 text-sm font-bold">Protocol</label><select value={streamConfig.protocol} onChange={e=>setStreamConfig({...streamConfig,protocol:e.target.value})} className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-sm font-semibold"><option value="rtsp">RTSP Stream</option><option value="hls">HTTP Live Stream</option><option value="webrtc">WebRTC</option></select></div><Field label="Stream URL" value={streamConfig.rtsp_url} onChange={v=>setStreamConfig({...streamConfig,rtsp_url:v})} required/><ModalActions onCancel={()=>setShowStreamModal(false)} submitLabel="Connect Stream" danger/></form></Modal>}
